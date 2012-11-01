@@ -12,10 +12,18 @@ function! paste_middleware#Paste(normal_command, visual)
     let saved_cursor = getpos('.')
 
     if a:normal_command ==# 'P' && before_mapping != ''
-      silent exe "normal ".before_mapping
-    elseif a:normal_command ==# 'p' && after_mapping != ''
-      if line("'[") <= 1
+      if line("'[") == line('$') + 1
+        if after_mapping != ''
+          silent exe "normal ".after_mapping
+        endif
+      else
         silent exe "normal ".before_mapping
+      endif
+    elseif a:normal_command ==# 'p' && after_mapping != ''
+      if line("'[") == 0
+        if before_mapping != ''
+          silent exe "normal ".before_mapping
+        endif
       else
         silent exe "normal ".after_mapping
       endif
@@ -23,20 +31,7 @@ function! paste_middleware#Paste(normal_command, visual)
       continue
     endif
 
-    let [start, end] = [getpos("'["), getpos("']")]
-
-    if getregtype() ==# 'V'
-      let text = join(sj#GetLines(line("'["), line("']")), "\n")."\n"
-    elseif getregtype() ==# 'v'
-      " TODO (2012-10-30) Not quite working, due to positions changing
-      let saved_cursor = getpos('.')
-      let text = sj#GetByPosition(start, end)
-      call setpos('.', saved_cursor)
-    elseif getregtype() =~ "\<c-v>\\d\\+"
-      " TODO (2012-10-30) Not quite working, due to having no idea how to work
-      " with it
-      let text = @"
-    endif
+    let text = join(sj#GetLines(line("'["), line("']")), "\n")."\n"
 
     let @" = text
     let @+ = text
@@ -53,6 +48,8 @@ function! paste_middleware#Paste(normal_command, visual)
   " TODO (2012-11-01) Check scenarios, document somehow
   if line("'[") == 0
     normal! P
+  elseif line("']") == line('$') + 1
+    normal! p
   else
     exe 'normal! '.a:normal_command
   endif
